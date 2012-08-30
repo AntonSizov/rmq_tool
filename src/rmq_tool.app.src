@@ -1,0 +1,14 @@
+  {application, rmq_tool,
+ [
+  {description, "This application gives a set of APIs to work RabbitMQ queues"},
+  {vsn, "1.0.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  lager,
+                  amqp_client
+                 ]},
+  {mod, { rmq_tool_app, []}},
+  {env, []}
+ ]}.
