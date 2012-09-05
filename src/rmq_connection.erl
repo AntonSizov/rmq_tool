@@ -3,9 +3,6 @@
 
 -export([
         start_link/0,
-        get_connection/0,
-        open_channel/0,
-        kill/0,
         get_channel/0
 ]).
 
@@ -24,7 +21,6 @@
 
 
 -record(state, {
-            amqp_params_network,
             connection,
             channel
 }).
@@ -38,17 +34,9 @@ start_link() ->
    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
-get_connection() ->
-   gen_server:call(?MODULE, get_connection).
-
-open_channel() ->
-    gen_server:call(?MODULE, open_channel).
-
-kill() ->
-    gen_server:call(?MODULE, kill).
-
 get_channel() ->
     gen_server:call(?MODULE, get_channel).
+
 
 %% ===================================================================
 %% gen_server callbacks
@@ -59,11 +47,11 @@ init([]) ->
 
     case amqp_connection:start(AP) of
         {ok, Connection} ->
-            ?log_info("Connected to RabbitMQ~n", []),
+            ?log_info("Connected to RabbitMQ", []),
             {ok, Channel} = amqp_connection:open_channel(Connection),
-            {ok, #state{amqp_params_network = AP, connection = Connection, channel = Channel}};
+            {ok, #state{connection = Connection, channel = Channel}};
         {error, _Reason} ->
-            ?log_error("Can't connect to RabbitMQ~n", [])
+            ?log_error("Can't connect to RabbitMQ", [])
     end.
 
 
@@ -75,20 +63,8 @@ handle_info(Info, State) ->
     {stop, {bad_arg, Info}, State}.
 
 
-handle_call(get_connection, _From, State) ->
-	{reply, State#state.connection, State};
-
-handle_call(open_channel, _From, State) ->
-    {ok, Channel} = amqp_connection:open_channel(State#state.connection),
-    {reply, Channel, State};
-
 handle_call(get_channel, _From, State) ->
     {reply, State#state.channel, State};
-
-handle_call(kill, _From, State) ->
-    amqp_channel:close(State#state.channel),
-    amqp_connection:close_connection(State#state.connection),
-    {noreply, State};    
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.

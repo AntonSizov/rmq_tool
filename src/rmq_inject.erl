@@ -25,7 +25,7 @@
 inject_series(QName, Series) ->
 	Chan = rmq_connection:get_channel(),
 
-	?log_info("Injecting ~p items into ~p~n", [length(Series), QName]),
+	?log_info("Injecting ~p items into ~p", [length(Series), QName]),
 	inject_series_one_by_one(QName, Chan, Series).
 
 

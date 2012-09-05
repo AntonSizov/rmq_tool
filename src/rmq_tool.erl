@@ -34,9 +34,9 @@ purge(QueueName) ->
 	try
 		Purge = #'queue.purge'{queue = QueueName},
 		{'queue.purge_ok', Count} = amqp_channel:call(Channel, Purge),
-		?log_info("~p items purged~n", [Count])
+		?log_info("~p items purged", [Count])
 	catch
-		_Ex:Reason -> ?log_error("Purging error: ~p.~n", [Reason])
+		_Ex:Reason -> ?log_error("Purging error: ~p.", [Reason])
 	end,
 
  	ok.
@@ -53,7 +53,7 @@ dump(QueueName, Max) ->
 
 dump(QueueName, Max, NoAck) ->
 	Channel = rmq_connection:get_channel(),
-	?log_debug("Dumping the queue ~p.~n", [QueueName]),
+	?log_info("Dumping the queue ~p.", [QueueName]),
 	
 	ok = dump_queue_contents(QueueName, Channel, Max, Max - (Max rem 10), NoAck).
 
@@ -90,7 +90,7 @@ read_and_inject_simple(QName, FileName, Limit, Offset) ->
 
 dump_queue_contents(_, _, 0, _, _) -> 
 	show_progress(100, 0),
-	?log_debug("Reached the limit.~n", []),
+	?log_info("Reached the limit.", []),
 	ok;
 
 dump_queue_contents(QueueName, Channel, Left, Max, NoAck) ->
@@ -101,18 +101,18 @@ dump_queue_contents(QueueName, Channel, Left, Max, NoAck) ->
 		{#'basic.get_ok'{ }, Content} ->
 			file:write_file(
 				lists:flatten(io_lib:format("log/~s.qdump", [QueueName])),
-				io_lib:format("{~p} .~n", [Content]),
+				io_lib:format("{~p} .", [Content]),
 				[append] 
 			),
 			dump_queue_contents(QueueName, Channel, Left - 1, Max, NoAck);
 		#'basic.get_empty'{} ->
-			?log_debug("Queue is empty.~n", [])
+			?log_info("Queue is empty.", [])
 	end.
 
 
 show_progress(0, 0) -> 	ok;
 
 show_progress(Progress, 0) ->
-	?log_info("... ~p% done~n", [Progress]);
+	?log_info("... ~p% done", [Progress]);
 
 show_progress(_Progress, _OtherValue) -> ok.
