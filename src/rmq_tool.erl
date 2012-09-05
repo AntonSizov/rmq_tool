@@ -5,10 +5,20 @@
 
 
 -export([
-	purge_queue/1,
-	dump_queue/3,
-	dump_queue/2,
-	dump_queue/1	
+	purge/1,
+	dump/3,
+	dump/2,
+	dump/1,
+
+	% aliases from inject
+	inject_series/2,
+
+	read_and_inject/3,
+	read_and_inject_stream/5,
+
+	read_and_inject_old/4,
+	read_and_inject_simple/4,
+	read_and_inject_proper/4	
 ]).
 
 
@@ -17,36 +27,60 @@
 %% ===================================================================
 
 %% purge queue
-purge_queue(QueueName) ->
-	Channel = rmq_connection:open_channel(),
-	?log_info("Purging the queue ~p.~n", [QueueName]),
+purge(QueueName) ->
+	Channel = rmq_connection:get_channel(),
+	?log_info("Purging the queue ~p...  ", [QueueName]),
 
 	try
 		Purge = #'queue.purge'{queue = QueueName},
-		amqp_channel:call(Channel, Purge)
+		{'queue.purge_ok', Count} = amqp_channel:call(Channel, Purge),
+		?log_info("~p items purged~n", [Count])
 	catch
 		_Ex:Reason -> ?log_error("Purging error: ~p.~n", [Reason])
 	end,
 
- 	amqp_channel:close(Channel),
  	ok.
  	
 
 %% dump queue
-dump_queue(QueueName) ->
-	dump_queue(QueueName, rmq_basic_funs:queue_length(QueueName), true).
+dump(QueueName) ->
+	dump(QueueName, rmq_basic_funs:queue_length(QueueName), true).
 
 
-dump_queue(QueueName, Max) ->
-	dump_queue(QueueName, Max, true).
+dump(QueueName, Max) ->
+	dump(QueueName, Max, true).
 
 
-dump_queue(QueueName, Max, NoAck) ->
-	Channel = rmq_connection:open_channel(),
+dump(QueueName, Max, NoAck) ->
+	Channel = rmq_connection:get_channel(),
 	?log_debug("Dumping the queue ~p.~n", [QueueName]),
 	
-	ok = dump_queue_contents(QueueName, Channel, Max, Max - (Max rem 10), NoAck),
-	amqp_channel:close(Channel). 	
+	ok = dump_queue_contents(QueueName, Channel, Max, Max - (Max rem 10), NoAck).
+
+
+
+inject_series(QName, Series) ->
+	rmq_inject:inject_series(QName, Series).
+
+
+read_and_inject_stream(QName, FileName, Limit, Offset, TellFun) ->
+	rmq_inject:read_and_inject_stream(QName, FileName, Limit, Offset, TellFun).
+
+
+read_and_inject(QName, Fun, FileName) ->
+	rmq_inject:read_and_inject(QName, Fun, FileName).
+
+
+read_and_inject_proper(QName, FileName, Limit, Offset) ->
+	rmq_inject:read_and_inject_proper(QName, FileName, Limit, Offset).
+
+
+read_and_inject_old(QName, FileName, Limit, Offset) ->
+	rmq_inject:read_and_inject_old(QName, FileName, Limit, Offset).
+
+
+read_and_inject_simple(QName, FileName, Limit, Offset) ->
+	rmq_inject:read_and_inject_simple(QName, FileName, Limit, Offset).
 
 
 %% ===================================================================
@@ -65,7 +99,6 @@ dump_queue_contents(QueueName, Channel, Left, Max, NoAck) ->
 
 	case amqp_channel:call(Channel, BasicGet) of
 		{#'basic.get_ok'{ }, Content} ->
-			#amqp_msg{payload = _Payload} = Content,
 			file:write_file(
 				lists:flatten(io_lib:format("log/~s.qdump", [QueueName])),
 				io_lib:format("{~p} .~n", [Content]),

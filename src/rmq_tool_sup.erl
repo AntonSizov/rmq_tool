@@ -26,6 +26,6 @@ start_link() ->
 init([]) ->
     {ok, { {one_for_one, 5, 10}, 
     	[
-			{rmq_connection, {rmq_connection, start_link, []}, permanent, infinity, worker, [rmq_connection]}
+			{rmq_connection, {rmq_connection, start_link, []}, permanent, 1800, worker, [rmq_connection]}
 		]
 	}}.
