@@ -6,11 +6,13 @@
 
 -export([
 	purge/1,
+	% aliases from dump
 	dump/3,
 	dump/2,
 	dump/1,
 
 	% aliases from inject
+	inject/2,
 	inject/3,
 	inject/4
 ]).
@@ -57,3 +59,6 @@ inject(QueueName, FileName, Offset) ->
 
 inject(QueueName, FileName, Offset, Count) ->
 	rmq_inject:inject(QueueName, FileName, Offset, Count).
+
+inject(QueueName, FileName) ->
+	rmq_inject:inject(QueueName, FileName).	

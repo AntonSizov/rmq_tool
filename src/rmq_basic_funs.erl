@@ -7,6 +7,11 @@
 	publish_message/3
 ]).
 
+
+-export([
+	get_seconds/0
+]).
+
 -include("logging.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
 
@@ -48,3 +53,9 @@ queue_declare(QueueName) ->
 publish_message(Channel, QueueName, Mesage) -> 
 	Publish = #'basic.publish'{ routing_key = QueueName },
 	amqp_channel:call(Channel, Publish, Mesage).	
+
+
+
+get_seconds() ->
+	{_Megaseconds, Seconds, _Microseconds} = erlang:now(),
+	Seconds.

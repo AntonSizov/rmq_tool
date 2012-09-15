@@ -66,21 +66,11 @@ handle_info(Info, State) ->
 handle_call(get_channel, _From, State) ->
     {reply, State#state.channel, State};
 
-handle_call(get_connection, _From, State) ->
-    {reply, State#state.connection, State};    
-
-handle_call(kill, _From, State) ->
-    amqp_channel:close(State#state.channel),
-    amqp_connection:close(State#state.connection),
-    {noreply, State};    
-
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 
-terminate(_Reason, State) ->
-    amqp_channel:close(State#state.channel),
-    amqp_connection:close(State#state.connection),
+terminate(_Reason, _State) ->
     ok.
 
 

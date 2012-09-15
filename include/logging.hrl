@@ -2,7 +2,8 @@
 -define(logging_hrl, included).
 
 -define( log_common(Lvl, Fmt, Args),
-		lager:Lvl("[~p]: " ++ Fmt ++  " [~s:~p]",[get(procname)] ++ Args ++ [?FILE, ?LINE] )
+		%% lager:Lvl("[~p]-: " ++ Fmt ++  " [~s:~p]",[get(procname)] ++ Args ++ [?FILE, ?LINE] )
+		lager:Lvl(Fmt ++  " [~s:~p]", Args ++ [?FILE, ?LINE] )
 	).
 
 -define( log_info(Fmt, Args), ?log_common(info, Fmt, Args) ).
