@@ -27,15 +27,20 @@
 %% ===================================================================
 
 
-%% dump queue
+%% @doc dump queue
+-spec dump(QueueName :: binary()) -> ok.
 dump(QueueName) ->
 	dump(QueueName, 0, true).
 
 
+%% @doc dump queue, limiting amount of dumped messages
+-spec dump(QueueName :: binary(), MaxMessages :: integer()) -> ok.
 dump(QueueName, MaxMessages) ->
 	dump(QueueName, MaxMessages, true).
 
 
+%% @doc dump queue, limiting amount of dumped messages
+-spec dump(QueueName :: binary(), MaxMessages :: integer(), NoAck :: atom()) -> ok.
 dump(QueueName, MaxMessages, NoAck) ->
 	dump(QueueName, MaxMessages, NoAck, rmq_basic_funs:queue_is_exists(QueueName)).
 

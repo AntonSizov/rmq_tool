@@ -30,10 +30,15 @@
 %% ===================================================================
 %% APIs
 %% ===================================================================
+
+%% @doc starting module
+-spec start_link() -> {ok, pid()}.
 start_link() ->
    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
+%% @doc get current channel
+-spec get_channel() -> pid().
 get_channel() ->
     gen_server:call(?MODULE, get_channel).
 
@@ -82,6 +87,9 @@ code_change(_OldSvn, State, _Extra) ->
 %% Internal
 %% ===================================================================
 
+
+%% get default AMQP params from config
+-spec get_default_amqp_params() -> #amqp_params_network{}.
 get_default_amqp_params() ->
     {ok, Host} = application:get_env(rmq_tool, amqp_host),
     {ok, Port} = application:get_env(rmq_tool, amqp_port),

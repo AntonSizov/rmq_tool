@@ -20,6 +20,9 @@
 %% APIs
 %% ===================================================================
 
+
+%% @doc Returns queue length
+-spec queue_length(QueueName :: binary()) -> integer().
 queue_length(QueueName) ->
 	Channel = rmq_connection:get_channel(),
 
@@ -32,6 +35,8 @@ queue_length(QueueName) ->
 	end.
 
 
+%% @doc Checking if query exists
+- spec queue_is_exists(QueueName :: binary()) -> boolean().
 queue_is_exists(QueueName) ->
 	Channel = rmq_connection:get_channel(),
 	try
@@ -43,6 +48,8 @@ queue_is_exists(QueueName) ->
 	end.
 
 
+%% @doc Creates queue
+- spec queue_declare(QueueName :: binary()) -> #'queue.declare_ok'{}.
 queue_declare(QueueName) ->
 	Channel = rmq_connection:get_channel(),
 
@@ -50,12 +57,14 @@ queue_declare(QueueName) ->
 	#'queue.declare_ok'{} = amqp_channel:call(Channel, Declare).
 
 
-publish_message(Channel, QueueName, Mesage) -> 
+%% @doc Publish message to the give queue
+- spec publish_message(Channel :: pid(), QueueName :: binary(), Message :: #'amqp_params'{}) -> ok.
+publish_message(Channel, QueueName, Message) -> 
 	Publish = #'basic.publish'{ routing_key = QueueName },
-	amqp_channel:call(Channel, Publish, Mesage).	
+	amqp_channel:call(Channel, Publish, Message).	
 
-
-
+%% @doc Returns current seconds
+-spec get_seconds() -> integer().
 get_seconds() ->
 	{_Megaseconds, Seconds, _Microseconds} = erlang:now(),
 	Seconds.

@@ -15,4 +15,3 @@ generate: compile
 
 console:
 	./rel/rmq_tool/bin/rmq_tool console
-

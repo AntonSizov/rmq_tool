@@ -25,14 +25,21 @@
 %% APIs
 %% ===================================================================
 
+
+%% @doc injecting queue with all data taken from a file
+-spec inject(QueueName :: binary(), FileName :: string()) -> ok.
 inject(QueueName, FileName) ->
 	inject(QueueName, FileName, 1).
 
 
+%% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages
+-spec inject(QueueName :: binary(), FileName :: string(), Offset :: integer()) -> ok.
 inject(QueueName, FileName, Offset) ->
 	inject(QueueName, FileName, Offset, all).
 
 
+%% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages and limits amount
+-spec inject(QueueName :: binary(), FileName :: string(), Offset :: integer(), Count :: integer()) -> ok.
 inject(QueueName, FileName, Offset, Count) ->
 	inject_stream(QueueName, 
 		string:concat(?DEFAULT_DUMP_lOGS_FOLDER, FileName), 
