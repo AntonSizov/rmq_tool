@@ -58,7 +58,7 @@ queue_declare(QueueName) ->
 
 
 %% @doc Publish message to the give queue
-- spec publish_message(Channel :: pid(), QueueName :: binary(), Message :: #'amqp_params'{}) -> ok.
+- spec publish_message(Channel :: pid(), QueueName :: binary(), Message :: #amqp_msg{}) -> ok.
 publish_message(Channel, QueueName, Message) -> 
 	Publish = #'basic.publish'{ routing_key = QueueName },
 	amqp_channel:call(Channel, Publish, Message).	
