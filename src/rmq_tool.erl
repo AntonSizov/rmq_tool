@@ -14,7 +14,9 @@
 	% aliases from inject
 	inject/2,
 	inject/3,
-	inject/4
+	inject/4,
+
+	help/0
 ]).
 
 
@@ -38,7 +40,7 @@ purge(QueueName) ->
 	end,
 
  	ok.
- 	
+
 
 %% @doc dump queue
 -spec dump(QueueName :: binary()) -> ok.
@@ -61,7 +63,7 @@ dump(QueueName, Max, NoAck) ->
 %% @doc injecting queue with all data taken from a file
 -spec inject(QueueName :: binary(), FileName :: string()) -> ok.
 inject(QueueName, FileName) ->
-	rmq_inject:inject(QueueName, FileName).	
+	rmq_inject:inject(QueueName, FileName).
 
 
 %% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages
@@ -74,3 +76,22 @@ inject(QueueName, FileName, Offset) ->
 -spec inject(QueueName :: binary(), FileName :: string(), Offset :: integer(), Count :: integer()) -> ok.
 inject(QueueName, FileName, Offset, Count) ->
 	rmq_inject:inject(QueueName, FileName, Offset, Count).
+
+%% @doc Print help info
+help() ->
+	Messages = [
+	"Purge queue: ~n"
+	"rmq_tool:purge(<<\"pmm.mmwl.response.sms\">>).~n",
+	"Dupm all messages in queue: ~n"
+	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>).~n",
+	"Dump 1000 messages in queue: ~n"
+	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>, 1000).~n",
+	"Inject all messages into queue: ~n"
+	"rmq_tool:inject(<<\"pmm.mmwl.response.sms\">>, \"pmm.mmwl.response.sms_20121022_17184.qdump\")~n",
+	"Advanced inject messages into queue: ~n"
+	"rmq_tool:inject(QueueName, FileName, Offset, Count)~n"
+	],
+	lists:foreach(fun(S) ->
+		io:format(S ++ "~n", [])
+	end, Messages),
+	ok.

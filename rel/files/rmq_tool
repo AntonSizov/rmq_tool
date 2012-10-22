@@ -131,6 +131,8 @@ case "$1" in
             exit $ES
         fi
 
+        echo "\033[38;5;1mType rmq_tool:help() for help info.\033[39m"
+
         shift
         exec $ERTS_PATH/to_erl $PIPE_DIR
         ;;
