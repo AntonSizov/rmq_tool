@@ -16,14 +16,28 @@
 	inject/3,
 	inject/4,
 
+	delete_queue/1,
 	help/0
 ]).
 
 
+%% -record('queue.delete', {ticket = 0, queue = <<"">>, if_unused = false, if_empty = false, nowait = false}).
+%% -record('queue.delete_ok', {message_count}).
 
 %% ===================================================================
 %% APIs
 %% ===================================================================
+
+delete_queue(QueueName) when is_binary(QueueName) ->
+	Channel = rmq_connection:get_channel(),
+	try
+		Delete = #'queue.delete'{queue = QueueName},
+		#'queue.delete_ok'{} = amqp_channel:call(Channel, Delete),
+		?log_info("Successfully deleted", [])
+	catch
+		Class:Error -> ?log_error("Delete error ~p:~p", [Class,Error])
+	end.
+
 
 %% @doc Purges queue
 -spec purge(QueueName :: binary()) -> ok.
