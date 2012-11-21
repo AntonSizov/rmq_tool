@@ -15,3 +15,12 @@ generate: compile
 
 console:
 	./rel/rmq_tool/bin/rmq_tool console
+
+start:
+	./rel/rmq_tool/bin/rmq_tool start
+
+ping:
+	./rel/rmq_tool/bin/rmq_tool ping
+
+attach:
+	./rel/rmq_tool/bin/rmq_tool attach

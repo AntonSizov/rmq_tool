@@ -5,7 +5,6 @@
 
 
 -export([
-	purge/1,
 	% aliases from dump
 	dump/3,
 	dump/2,
@@ -16,13 +15,11 @@
 	inject/3,
 	inject/4,
 
+	purge/1,
 	delete_queue/1,
+	list_dumps/0,
 	help/0
 ]).
-
-
-%% -record('queue.delete', {ticket = 0, queue = <<"">>, if_unused = false, if_empty = false, nowait = false}).
-%% -record('queue.delete_ok', {message_count}).
 
 %% ===================================================================
 %% APIs
@@ -44,7 +41,6 @@ delete_queue(QueueName) when is_binary(QueueName) ->
 purge(QueueName) ->
 	Channel = rmq_connection:get_channel(),
 	?log_info("Purging the queue ~p...  ", [QueueName]),
-
 	try
 		Purge = #'queue.purge'{queue = QueueName},
 		{'queue.purge_ok', Count} = amqp_channel:call(Channel, Purge),
@@ -52,7 +48,6 @@ purge(QueueName) ->
 	catch
 		_Ex:Reason -> ?log_error("Purging error: ~p.", [Reason])
 	end,
-
  	ok.
 
 
@@ -76,12 +71,20 @@ dump(QueueName, Max, NoAck) ->
 
 %% @doc injecting queue with all data taken from a file
 -spec inject(QueueName :: binary(), FileName :: string()) -> ok.
+inject(QueueName, DumpNumber) when is_integer(DumpNumber) ->
+	{ok, Dumps} = get_dump_list(),
+	FileName = lists:nth(DumpNumber, Dumps),
+	inject(QueueName, FileName);
 inject(QueueName, FileName) ->
 	rmq_inject:inject(QueueName, FileName).
 
 
 %% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages
 -spec inject(QueueName :: binary(), FileName :: string(), Offset :: integer()) -> ok.
+inject(QueueName, DumpNumber, Offset) when is_integer(DumpNumber) ->
+	{ok, Dumps} = get_dump_list(),
+	FileName = lists:nth(DumpNumber, Dumps),
+	inject(QueueName, FileName, Offset);
 inject(QueueName, FileName, Offset) ->
 	rmq_inject:inject(QueueName, FileName, Offset).
 
@@ -91,7 +94,23 @@ inject(QueueName, FileName, Offset) ->
 inject(QueueName, FileName, Offset, Count) ->
 	rmq_inject:inject(QueueName, FileName, Offset, Count).
 
+%% @doc List all available dump files
+-spec list_dumps() -> ok.
+list_dumps() ->
+	{ok, Dumps} = get_dump_list(),
+	Print = fun(N) ->
+		Name = lists:nth(N, Dumps),
+		io:format("~p: ~p~n", [N, Name])
+	end,
+	lists:foreach(Print, lists:seq(1, length(Dumps))).
+
+get_dump_list() ->
+	RawList = os:cmd("ls ./dumps"),
+	ListOfDumps = string:tokens(RawList, "\n"),
+	{ok, ListOfDumps}.
+
 %% @doc Print help info
+-spec help() -> ok.
 help() ->
 	Messages = [
 	"Purge queue: ~n"
@@ -100,10 +119,15 @@ help() ->
 	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>).~n",
 	"Dump 1000 messages in queue: ~n"
 	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>, 1000).~n",
+	"List available dumps: ~n"
+	"rmq_tool:list_dumps().~n",
 	"Inject all messages into queue: ~n"
+	"rmq_tool:inject(<<\"pmm.mmwl.response.sms\">>, 1)~n"
 	"rmq_tool:inject(<<\"pmm.mmwl.response.sms\">>, \"pmm.mmwl.response.sms_20121022_17184.qdump\")~n",
 	"Advanced inject messages into queue: ~n"
-	"rmq_tool:inject(QueueName, FileName, Offset, Count)~n"
+	"rmq_tool:inject(QueueName, FileName, Offset, Count)~n",
+	"Delete queue: ~n"
+	"rmq_tool:delete_queue(<<\"queue_name\">>).~n"
 	],
 	lists:foreach(fun(S) ->
 		io:format(S ++ "~n", [])
