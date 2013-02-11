@@ -15,7 +15,7 @@
 -record(injecting_state, {
 			offset,
 			count,
-			seconds, 
+			seconds,
 			messages_count,
 			max
 }).
@@ -27,22 +27,26 @@
 
 
 %% @doc injecting queue with all data taken from a file
--spec inject(QueueName :: binary(), FileName :: string()) -> ok.
-inject(QueueName, FileName) ->
-	inject(QueueName, FileName, 1).
-
+-spec inject(QueueName :: binary() | [binary()], FileName :: string()) -> ok.
+inject(QueueName, FileName) when is_binary(QueueName) ->
+	inject([QueueName], FileName);
+inject(Queues, FileName) when is_list(Queues) ->
+	inject(Queues, FileName, 1).
 
 %% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages
--spec inject(QueueName :: binary(), FileName :: string(), Offset :: integer()) -> ok.
-inject(QueueName, FileName, Offset) ->
-	inject(QueueName, FileName, Offset, all).
-
+-spec inject(Queues :: binary() | [binary()], FileName :: string(), Offset :: integer()) -> ok.
+inject(Queue, FileName, Offset) when is_binary(Queue) ->
+	inject([Queue], FileName, Offset);
+inject(Queues, FileName, Offset) when is_list(Queues) ->
+	inject(Queues, FileName, Offset, all).
 
 %% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages and limits amount
 -spec inject(QueueName :: binary(), FileName :: string(), Offset :: integer(), Count :: integer()) -> ok.
-inject(QueueName, FileName, Offset, Count) ->
-	inject_stream(QueueName, 
-		string:concat(?DEFAULT_DUMP_lOGS_FOLDER, FileName), 
+inject(Queue, FileName, Offset, Count) when is_binary(Queue) ->
+	inject([Queue], FileName, Offset, Count);
+inject(Queues, FileName, Offset, Count)  when is_list(Queues) ->
+	inject_stream(Queues,
+		string:concat(?DEFAULT_DUMP_lOGS_FOLDER, FileName),
 		init_injecting_state(Offset, Count)).
 
 
@@ -53,24 +57,24 @@ inject(QueueName, FileName, Offset, Count) ->
 
 init_injecting_state(Offset, Count) ->
 	#injecting_state{
-		offset = Offset - 1, 
-		count = Count, 
-		seconds = rmq_basic_funs:get_seconds(), 
+		offset = Offset - 1,
+		count = Count,
+		seconds = rmq_basic_funs:get_seconds(),
 		messages_count = 0,
 		max = Count}.
 
 
-inject_stream(QueueName, FileName, State) ->
+inject_stream(Queues, FileName, State) when is_list(Queues) ->
 	case file:open(FileName, [read]) of
 		{ok, Fd} ->
-			?log_info("Queue `~p` will be injected with ~p messages", [QueueName, State#injecting_state.count]),
+			?log_info("Queue `~p` will be injected with ~p messages", [Queues, State#injecting_state.count]),
 			?log_info("Options: offset=~p, amount of message=~p", [State#injecting_state.offset + 1, State#injecting_state.count]),
 			Channel = rmq_connection:get_channel(),
-			read_term_and_publish(Fd, 1, State, 
-					fun(Term) -> rmq_basic_funs:publish_message(Channel, QueueName, Term) end),
+			read_term_and_publish(Fd, 1, State,
+					fun(Term) -> [rmq_basic_funs:publish_message(Channel, Queue, Term) || Queue <- Queues] end),
 			?log_info("done", []),
 			file:close(Fd);
-		Error -> 
+		Error ->
 			Error
 	end.
 
@@ -89,7 +93,7 @@ try_to_publish(State, WhatToDoFun, Term) ->
 	get_next_state(NewState).
 
 
-read_term_and_publish(_Fd, _Line, #injecting_state{offset = 0, count = 0, messages_count = Count}, _WhatToDoFun) -> 
+read_term_and_publish(_Fd, _Line, #injecting_state{offset = 0, count = 0, messages_count = Count}, _WhatToDoFun) ->
 	show_summary(Count),
 	ok;
 
@@ -127,7 +131,7 @@ get_current_state(#injecting_state{offset = _Y, count = _Z}) -> continue.
 
 
 get_next_state(State = #injecting_state{offset = 0, count = 0}) -> State;
-get_next_state(State = #injecting_state{offset = 0, count = Value}) when is_integer(Value) -> 
+get_next_state(State = #injecting_state{offset = 0, count = Value}) when is_integer(Value) ->
 	State#injecting_state{count = Value - 1};
 get_next_state(State = #injecting_state{offset = 0, count = Value}) when is_atom(Value) ->
 	State;
