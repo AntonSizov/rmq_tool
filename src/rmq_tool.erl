@@ -112,24 +112,28 @@ get_dump_list() ->
 %% @doc Print help info
 -spec help() -> ok.
 help() ->
-	Messages = [
+	io:format(
 	"Purge queue: ~n"
-	"rmq_tool:purge(<<\"pmm.mmwl.response.sms\">>).~n",
+	"rmq_tool:purge(<<\"pmm.mmwl.response.sms\">>).~n~n"
+
 	"Dupm all messages in queue: ~n"
-	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>).~n",
+	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>).~n~n"
+
 	"Dump 1000 messages in queue: ~n"
-	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>, 1000).~n",
+	"rmq_tool:dump(<<\"pmm.mmwl.response.sms\">>, 1000).~n~n"
+
 	"List available dumps: ~n"
-	"rmq_tool:list_dumps().~n",
+	"rmq_tool:list_dumps().~n~n"
+
 	"Inject all messages into queue: ~n"
-	"rmq_tool:inject(<<\"pmm.mmwl.response.sms\">>, 1)~n"
-	"rmq_tool:inject(<<\"pmm.mmwl.response.sms\">>, \"pmm.mmwl.response.sms_20121022_17184.qdump\")~n",
+	"rmq_tool:inject(<<\"pmm.mmwl.response.sms\">>, 1) %% 1 is the number of the dump from list_dump listing~n"
+	"rmq_tool:inject(<<\"pmm.mmwl.response.sms\">>, \"pmm.mmwl.response.sms_20121022_17184.qdump\")~n~n"
+
 	"Advanced inject messages into queue: ~n"
-	"rmq_tool:inject(QueueName, FileName, Offset, Count)~n",
+	"rmq_tool:inject(QueueName, FileName, Offset)~n"
+	"rmq_tool:inject(QueueName, FileName, Offset, Count)~n~n"
+
 	"Delete queue: ~n"
 	"rmq_tool:delete_queue(<<\"queue_name\">>).~n"
-	],
-	lists:foreach(fun(S) ->
-		io:format(S ++ "~n", [])
-	end, Messages),
-	ok.
+	).
+
