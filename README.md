@@ -1,47 +1,58 @@
-This app is a simple tool that able to manage RabbitMQ when [rabbitmq-management plugin] is not available.
+A command line tool that able to purge, delete, dump and restore RabbitMQ queues
+using AMQP protocol.
 
-[rabbitmq-management plugin]: http://www.rabbitmq.com/management.html
+### How to?
 
-### Features
-- purge queue
-- delete queue
-- dump queue
-- restore queue dump
+1. Download rmq_tool escript from releases page or build your own
+2. Execute `./rmq_tool` to see help message like listed below
 
-### Installation and launching
+### Help output
 
-``` shell
-git clone https://github.com/AntonSizov/rmq_tool.git
-cd ./rmq_tool
-make && make console
+```shell
+Usage: rmq_tool [-h [<host>]] [-p [<port>]] [-H [<virtual_host>]]
+                [-u [<username>]] [-p [<password>]] [-b [<heartbeat>]]
+                [-t [<connection_timeout>]] [-v [<verbose>]] <command>
+                [<command_args>]
+
+  -h, --host
+  -p, --port
+  -H, --virtual_host
+  -u, --username
+  -p, --password
+  -b, --heartbeat
+  -t, --connect_timeout
+  -v, --verbose
+  command                purge, dump, restore, delete_queue
+  command_args
+
+
+	Available commands and its args description:
+
+	Purge queue:
+	rmq_tool purge <queue_name>
+
+	Dupm all messages in queue:
+	rmq_tool dump <queue_name>
+
+	Dump N messages in queue:
+	rmq_tool dump <queue_name> <N>
+
+	Restore messages from queue dump by dump file name:
+	rmq_tool restore <queue_name> <dump_file_name>
+
+	Advanced messages restore:
+	rmq_tool restore <queue_name> <dump_file_name> <offset>
+	rmq_tool restore <queue_name> <dump_file_name> <offset> <count>
+
+	Delete queue:
+	rmq_tool delete_queue <queue_name>
 ```
 
-To veiw help, type in Erlang shell:
+### Build
 
-``` erlang
-(rmq_tool@127.0.0.1)1> rmq_tool:help().
-Purge queue:
-rmq_tool:purge(<<"pmm.mmwl.response.sms">>).
+Run `make` and you will get rmq_tool escript in project dirictory
+There is an *Erlang* should be provided in PATH
 
-Dupm all messages in queue:
-rmq_tool:dump(<<"pmm.mmwl.response.sms">>).
-
-Dump 1000 messages in queue:
-rmq_tool:dump(<<"pmm.mmwl.response.sms">>, 1000).
-
-List available dumps:
-rmq_tool:list_dumps().
-
-Inject all messages into queue:
-rmq_tool:inject(<<"pmm.mmwl.response.sms">>, 1) %% 1 is the number of the dump from list_dump listing
-rmq_tool:inject(<<"pmm.mmwl.response.sms">>, "pmm.mmwl.response.sms_20121022_17184.qdump")
-
-Advanced inject messages into queue:
-rmq_tool:inject(QueueName, FileName, Offset)
-rmq_tool:inject(QueueName, FileName, Offset, Count)
-
-Delete queue:
-rmq_tool:delete_queue(<<"queue_name">>).
-ok
-(rmq_tool@127.0.0.1)2>
+```shell
+git clone https://github.com/AntonSizov/rmq_tool.git && cd rmq_tool && make
 ```
