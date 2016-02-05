@@ -14,7 +14,7 @@
 
 
 start(_StartType, _StartArgs) ->
-	filelib:ensure_dir(?DEFAULT_DUMP_lOGS_FOLDER),
+    filelib:ensure_dir(?DEFAULT_DUMP_lOGS_FOLDER),
     rmq_tool_sup:start_link().
 
 
