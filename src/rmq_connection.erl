@@ -1,31 +1,28 @@
 -module(rmq_connection).
+
 -behaviour(gen_server).
 
 -export([
-        start_link/0,
-        get_channel/0
+    start_link/0,
+    get_channel/0
 ]).
 
 -export([
-        init/1,
-        handle_call/3,
-        handle_cast/2,
-        handle_info/2,
-        terminate/2,
-        code_change/3
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
 ]).
-
 
 -include("logging.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
 
-
 -record(state, {
-            connection,
-            channel
+    connection :: pid(),
+    channel :: pid()
 }).
-
-
 
 %% ===================================================================
 %% APIs
@@ -82,7 +79,6 @@ terminate(_Reason, _State) ->
 code_change(_OldSvn, State, _Extra) ->
     {ok, State}.
 
-
 %% ===================================================================
 %% Internal
 %% ===================================================================
@@ -116,7 +112,7 @@ get_default_amqp_params() ->
         username = list_to_binary(User),
         password = list_to_binary(Pass),
         host = Host,
-        virtual_host = VHost,
+        virtual_host = list_to_binary(VHost),
         port = Port,
         heartbeat = HeartBeat,
         connection_timeout = ConnTimeout
