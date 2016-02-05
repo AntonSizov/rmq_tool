@@ -30,7 +30,8 @@
         {username,           $u, "username",        {string, "guest"},     ""},
         {password,           $p, "password",        {string, "guest"},     ""},
         {heartbeat,          $b, "heartbeat",       {boolean, false},      ""},
-        {connection_timeout, $t, "connect_timeout", {integer, 5000},       ""}
+        {connection_timeout, $t, "connect_timeout", {integer, 5000},       ""},
+        {verbose,            $v, "verbose",         {boolean, false},      ""}
     ]).
 
 %% ===================================================================
@@ -40,6 +41,8 @@
 -spec main([list()]) -> ignore.
 main(Args) ->
     {ok, {Props, CmdAndArgs}} = getopt:parse(?OptSpecList, Args),
+    set_env(Props),
+    ?log_debug("Props: ~p", [Props]),
     ?log_debug("CmdAndArgs: ~p", [CmdAndArgs]),
     main(Props, CmdAndArgs).
 
@@ -168,7 +171,7 @@ inject(QueueName, FileName, Offset, Count) ->
     rmq_inject:inject(QueueName, FileName, Offset, Count).
 
 
-start_all(Props) ->
+set_env(Props) ->
     PropNameList = [
         host,
         port,
@@ -176,10 +179,13 @@ start_all(Props) ->
         username,
         password,
         heartbeat,
-        connection_timeout
+        connection_timeout,
+        verbose
     ],
 
     [ok = application:set_env(?MODULE, K, proplists:get_value(K, Props)) ||
-        K <- PropNameList],
+        K <- PropNameList].
+
+start_all(_) ->
     ok = application:start(amqp_client),
     ok = application:start(?MODULE).
