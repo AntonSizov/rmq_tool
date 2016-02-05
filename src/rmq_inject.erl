@@ -13,43 +13,39 @@
 
 
 -record(injecting_state, {
-            offset,
-            count,
-            seconds,
-            messages_count,
-            max
+    offset,
+    count,
+    seconds,
+    messages_count,
+    max
 }).
-
 
 %% ===================================================================
 %% APIs
 %% ===================================================================
 
-
 %% @doc injecting queue with all data taken from a file
--spec inject(QueueName :: binary() | [binary()], FileName :: string()) -> ok.
+-spec inject(binary(), string()) -> ok.
 inject(QueueName, FileName) when is_binary(QueueName) ->
-    inject([QueueName], FileName);
-inject(Queues, FileName) when is_list(Queues) ->
-    inject(Queues, FileName, 1).
+    inject(QueueName, FileName, 1).
 
 %% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages
--spec inject(Queues :: binary() | [binary()], FileName :: string(), Offset :: integer()) -> ok.
+-spec inject(binary(), string(), integer()) -> ok.
 inject(Queue, FileName, Offset) when is_binary(Queue) ->
-    inject([Queue], FileName, Offset);
-inject(Queues, FileName, Offset) when is_list(Queues) ->
-    inject(Queues, FileName, Offset, all).
+    inject(Queue, FileName, Offset, all).
 
 %% @doc injecting queue with all data taken from a file. Skipping a couple of starting messages and limits amount
--spec inject(QueueName :: binary(), FileName :: string(), Offset :: integer(), Count :: integer()) -> ok.
+-spec inject(binary(), string(), integer(), integer() | all) -> ok.
 inject(Queue, FileName, Offset, Count) when is_binary(Queue) ->
-    inject([Queue], FileName, Offset, Count);
-inject(Queues, FileName, Offset, Count)  when is_list(Queues) ->
-    inject_stream(Queues,
-        string:concat(?DEFAULT_DUMP_lOGS_FOLDER, FileName),
-        init_injecting_state(Offset, Count)).
-
-
+    FullFileName =
+    case filelib:is_file(FileName) of
+        true ->
+            FileName;
+        false ->
+            string:concat(?DEFAULT_DUMP_lOGS_FOLDER, FileName)
+    end,
+    InjectingState = init_injecting_state(Offset, Count),
+    inject_stream(Queue, FullFileName, InjectingState).
 
 %% ===================================================================
 %% Internals
@@ -61,21 +57,22 @@ init_injecting_state(Offset, Count) ->
         count = Count,
         seconds = rmq_basic_funs:get_seconds(),
         messages_count = 0,
-        max = Count}.
+        max = Count
+    }.
 
 
-inject_stream(Queues, FileName, State) when is_list(Queues) ->
+inject_stream(Queue, FileName, State) ->
     case file:open(FileName, [read]) of
         {ok, Fd} ->
-            ?log_info("Queue `~p` will be injected with ~p messages", [Queues, State#injecting_state.count]),
+            ?log_info("Queue `~s` will be injected with ~p messages", [Queue, State#injecting_state.count]),
             ?log_info("Options: offset=~p, amount of message=~p", [State#injecting_state.offset + 1, State#injecting_state.count]),
             Channel = rmq_connection:get_channel(),
             read_term_and_publish(Fd, 1, State,
-                    fun(Term) -> [rmq_basic_funs:publish_message(Channel, Queue, Term) || Queue <- Queues] end),
+                    fun(Term) -> rmq_basic_funs:publish_message(Channel, Queue, Term) end),
             ?log_info("done", []),
             file:close(Fd);
-        Error ->
-            Error
+        {error, Error} ->
+                ?log_error("Cant open dump file: ~p", [Error])
     end.
 
 
@@ -103,7 +100,7 @@ read_term_and_publish(Fd, Line, State, WhatToDoFun)    ->
             NewState = try_to_publish(State, WhatToDoFun, Term),
             read_term_and_publish(Fd, EndLine, NewState, WhatToDoFun);
         {error, Error, _Line} ->
-            { error, Error};
+            {error, Error};
         {eof, _Line} ->
             show_summary(State#injecting_state.messages_count),
             ok
@@ -135,4 +132,5 @@ get_next_state(State = #injecting_state{offset = 0, count = Value}) when is_inte
     State#injecting_state{count = Value - 1};
 get_next_state(State = #injecting_state{offset = 0, count = Value}) when is_atom(Value) ->
     State;
-get_next_state(State = #injecting_state{offset = Value, count = _Count}) -> State#injecting_state{offset = Value - 1}.
+get_next_state(State = #injecting_state{offset = Value, count = _Count}) ->
+    State#injecting_state{offset = Value - 1}.

@@ -43,18 +43,17 @@ main(Props, ["dump", QueueName, N]) ->
     start_all(Props),
     dump(list_to_binary(QueueName), list_to_integer(N)),
     halt(0);
-main(Props, ["restore", QueueName0, DumpIdOrFileName]) ->
+main(Props, ["restore", QueueName, FileName]) ->
     start_all(Props),
-    QueueName = list_to_binary(QueueName0),
-    inject(QueueName, list_to_binary(DumpIdOrFileName)),
+    inject(list_to_binary(QueueName), FileName),
     halt(0);
 main(Props, ["restore", QueueName, DumpFileName, Offset]) ->
     start_all(Props),
-    inject(list_to_binary(QueueName), list_to_binary(DumpFileName), list_to_integer(Offset)),
+    inject(list_to_binary(QueueName), DumpFileName, list_to_integer(Offset)),
     halt(0);
 main(Props, ["restore", QueueName, DumpFileName, Offset, Count]) ->
     start_all(Props),
-    inject(list_to_binary(QueueName), list_to_binary(DumpFileName), list_to_integer(Offset), list_to_integer(Count)),
+    inject(list_to_binary(QueueName), DumpFileName, list_to_integer(Offset), list_to_integer(Count)),
     halt(0);
 main(Props, ["delete_queue", QueueName]) ->
     start_all(Props),
