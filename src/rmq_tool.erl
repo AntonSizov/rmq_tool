@@ -194,4 +194,5 @@ set_env(Props) ->
 
 start_all(_) ->
     ok = application:start(amqp_client),
-    ok = application:start(?MODULE).
+    ok = application:start(?MODULE),
+    {ok, _} = rmq_connection:start_link().

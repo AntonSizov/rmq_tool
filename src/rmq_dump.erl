@@ -78,6 +78,7 @@ dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt
     ?log_info("Summary: ~p messages have been dumped (max msg count reached)", [Cnt]);
 
 dump_queue_contents(QueueName, Channel, NoAck, State, LogFileName) when is_list(LogFileName) ->
+    filelib:ensure_dir(?DEFAULT_DUMP_lOGS_FOLDER),
     case file:open(LogFileName, [write, exclusive, raw]) of
         {ok, IoDevice} ->
             ?log_debug("File ~s opened for write", [LogFileName]),

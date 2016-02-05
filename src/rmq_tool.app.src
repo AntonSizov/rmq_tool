@@ -7,6 +7,5 @@
         stdlib,
         amqp_client
      ]},
-    {mod, {rmq_tool_app, []}},
     {env, []}
 ]}.
