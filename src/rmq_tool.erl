@@ -75,6 +75,12 @@ main(Props, ["delete_queue", QueueName]) ->
     start_all(Props),
     delete_queue(list_to_binary(QueueName)),
     halt(0);
+main(_Props, ["version"]) ->
+    ok = application:load(?MODULE),
+    Loaded = application:loaded_applications(),
+    {?MODULE, _, Version} = lists:keyfind(?MODULE, 1, Loaded),
+    io:format("~s~n", [Version]),
+    halt(0);
 main(_Props, _) ->
     MainOptionsDescr = [
         {"command", "purge, dump, restore, delete_queue"},
