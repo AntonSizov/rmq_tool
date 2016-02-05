@@ -10,32 +10,29 @@
     dump/1
 ]).
 
-
 -record(dump_progress_state, {
-            seconds,
-            left,
-            count,
-            messages_count
+    seconds,
+    left,
+    count,
+    messages_count
 }).
 
-
--define(QUEUE_IS_EMPTY_MSG, "Queue is empty.").
+-define(QUEUE_IS_EMPTY_MSG, "Queue is empty. Skip").
 
 %% ===================================================================
 %% APIs
 %% ===================================================================
 
-
 %% @doc dump queue
 -spec dump(QueueName :: binary()) -> ok.
 dump(QueueName) ->
-    dump(QueueName, 0, true).
+    dump(QueueName, _MaxMsgs = 0, _NoAck = true).
 
 
 %% @doc dump queue, limiting amount of dumped messages
 -spec dump(QueueName :: binary(), MaxMessages :: integer()) -> ok.
 dump(QueueName, MaxMessages) ->
-    dump(QueueName, MaxMessages, true).
+    dump(QueueName, MaxMessages, _NoAck = true).
 
 
 %% @doc dump queue, limiting amount of dumped messages
@@ -43,51 +40,41 @@ dump(QueueName, MaxMessages) ->
 dump(QueueName, MaxMessages, NoAck) ->
     dump(QueueName, MaxMessages, NoAck, rmq_basic_funs:queue_is_exists(QueueName)).
 
-
 %% ===================================================================
 %% Internals
 %% ===================================================================
 
+dump(QueueName, _MaxMessages, _NoAck, _IsExist = false) ->
+    ?log_info("Queue `~s` doesn't exist", [QueueName]);
 
-dump(QueueName, _MaxMessages, _NoAck, false) ->
-    ?log_info("Queue `~p` doesn't exists", [QueueName]),
-    ok;
-
-
-dump(QueueName, MaxMessages, NoAck, true) ->
+dump(QueueName, MaxMessages, NoAck, _IsExist = true) ->
     Channel = rmq_connection:get_channel(),
-
+    ?log_debug("Got channel: ~p", [Channel]),
     MessagesCount = get_max_items(QueueName, MaxMessages),
-
+    ?log_debug("Dump msgs count: ~p", [MessagesCount]),
     DumpProgress = #dump_progress_state{
         seconds = rmq_basic_funs:get_seconds(),
         left = MessagesCount,
         count = MessagesCount,
-        messages_count = 0},
-
+        messages_count = 0
+    },
     FileName = compose_log_file_name(QueueName),
-    ?log_info("Dumping queue into file ~p.", [filename:basename(FileName)]),
-
-     dump_queue_contents(QueueName, Channel, NoAck, DumpProgress, FileName).
+    ?log_info("Dumping queue to ~s", [FileName]),
+    dump_queue_contents(QueueName, Channel, NoAck, DumpProgress, FileName).
 
 
 get_max_items(QueueName, 0) ->
     rmq_basic_funs:queue_length(QueueName);
-get_max_items(_QueueName, Max) ->
-    Max.
+get_max_items(QueueName, Max) ->
+    AvailableMsgsNumber = rmq_basic_funs:queue_length(QueueName),
+    min(AvailableMsgsNumber, Max).
 
 
-show_summary(MessagesCount)    ->
-    ?log_info("Summary: ~p messages have been dumped", [MessagesCount]).
+dump_queue_contents(_, _, _, #dump_progress_state{count = 0, messages_count = 0}, _LogFileName) ->
+    ?log_info(?QUEUE_IS_EMPTY_MSG, []);
 
-
-dump_queue_contents(_, _, _, #dump_progress_state{count = 0, messages_count = 0}, LogFileName) ->
-    push_to_dump_empty_queue(LogFileName, 0),
-    ok;
-
-dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt}, _) ->
-    show_summary(Cnt),
-    ok;
+dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt}, _LogFileName) ->
+    ?log_info("Summary: ~p messages have been dumped (max msg count reached)", [Cnt]);
 
 dump_queue_contents(QueueName, Channel, NoAck, State, LogFileName) ->
     NewState = show_progress(rmq_basic_funs:get_seconds(), State),
@@ -99,31 +86,39 @@ dump_queue_contents(QueueName, Channel, NoAck, State, LogFileName) ->
             push_to_dump(LogFileName, Content),
             dump_queue_contents(QueueName, Channel, NoAck, NewState, LogFileName);
         #'basic.get_empty'{} ->
-            push_to_dump_empty_queue(LogFileName, State#dump_progress_state.messages_count)
+            ?log_info("Summary: ~p messages have been dumped (basic.get_empty)",
+                [State#dump_progress_state.messages_count])
     end.
-
-
-push_to_dump_empty_queue(LogFileName, 0) ->
-    ?log_info(?QUEUE_IS_EMPTY_MSG, []),
-    file:write_file(LogFileName, ?QUEUE_IS_EMPTY_MSG);
-
-push_to_dump_empty_queue(_LogFileName, MessagesCount) ->
-    show_summary(MessagesCount).
 
 
 push_to_dump(LogFileName, Content) ->
     file:write_file(LogFileName, io_lib:format("~p.~n", [Content]), [append]).
 
 
+show_progress(NowSeconds, DumpProgressState = #dump_progress_state{seconds = NowSeconds}) ->
+    #dump_progress_state{
+        left = Left,
+        messages_count = DumpedCnt
+    } = DumpProgressState,
+    DumpProgressState#dump_progress_state{
+        left = Left - 1,
+        messages_count = DumpedCnt + 1
+    };
 
-show_progress(NowSeconds, DPS = #dump_progress_state{ seconds = NowSeconds, left = Left, messages_count = DumpedCnt}) ->
-    DPS#dump_progress_state{left = Left - 1, messages_count = DumpedCnt + 1};
-
-show_progress(NowSeconds, DPS = #dump_progress_state{left = Left, count = Count, messages_count = DumpedCnt}) ->
-    ?log_info("Processed ~p% (~p of ~p)", [100 - trunc(Left / Count * 100), Count - Left, Count]),
-    DPS#dump_progress_state{seconds = NowSeconds, left = Left - 1, count = Count, messages_count = DumpedCnt + 1}.
-
-
+show_progress(NowSeconds, DumpProgressState = #dump_progress_state{}) ->
+    #dump_progress_state{
+        left = Left,
+        count = Count,
+        messages_count = DumpedCnt
+    } = DumpProgressState,
+    PercentDone = 100 - trunc(Left / Count * 100),
+    ?log_info("Processed ~p% (~p of ~p)", [PercentDone, Count - Left, Count]),
+    DumpProgressState#dump_progress_state{
+        seconds = NowSeconds,
+        left = Left - 1,
+        count = Count,
+        messages_count = DumpedCnt + 1
+    }.
 
 
 concat_anything(List) ->
@@ -145,4 +140,7 @@ concat_anything([H|T], Acc) when is_list(H) ->
 
 compose_log_file_name(QueueName) ->
     { {Year, Month, Day}, {Hour, Minutes, Seconds}} = erlang:localtime(),
-    concat_anything([?DEFAULT_DUMP_lOGS_FOLDER, QueueName, "_", Year, Month, Day, "_", Hour, Minutes, Seconds, ".qdump"]).
+    concat_anything([
+        ?DEFAULT_DUMP_lOGS_FOLDER,
+        QueueName, "_", Year, Month, Day, "_", Hour, Minutes, Seconds, ".qdump"
+    ]).
