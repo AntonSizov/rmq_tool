@@ -1,4 +1,5 @@
-all: generate
+
+all: escriptize
 
 get-deps:
 	@./rebar get-deps
@@ -24,3 +25,9 @@ ping:
 
 attach:
 	./rel/rmq_tool/bin/rmq_tool attach
+
+escriptize: compile xref
+	./rebar escriptize
+
+xref: compile
+	./rebar xref skip_deps=true

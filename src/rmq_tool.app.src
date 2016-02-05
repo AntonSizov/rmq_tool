@@ -1,15 +1,12 @@
-  {application, rmq_tool,
- [
-  {description, "This application gives a set of APIs to work RabbitMQ queues"},
-  {vsn, "1.1.0"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib,
-                  lager,
-                  amqp_client,
-				  sync
-                 ]},
-  {mod, { rmq_tool_app, []}},
-  {env, []}
- ]}.
+{application, rmq_tool, [
+    {description, "Able to dump, restore purge and remove queues"},
+    {vsn, "1.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        amqp_client
+     ]},
+    {mod, {rmq_tool_app, []}},
+    {env, []}
+]}.

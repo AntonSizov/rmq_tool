@@ -42,28 +42,28 @@ start_link() ->
 get_channel() ->
     gen_server:call(?MODULE, get_channel).
 
-
 %% ===================================================================
 %% gen_server callbacks
 %% ===================================================================
+
 init([]) ->
-    AP = get_default_amqp_params(),
-
-
-    case amqp_connection:start(AP) of
+    AmqpParams = get_default_amqp_params(),
+    case amqp_connection:start(AmqpParams) of
         {ok, Connection} ->
+            link(Connection),
             ?log_info("Connected to RabbitMQ", []),
             {ok, Channel} = amqp_connection:open_channel(Connection),
             link(Channel),
             {ok, #state{connection = Connection, channel = Channel}};
-        {error, _Reason} ->
-            ?log_error("Can't connect to RabbitMQ", [])
+        {error, Reason} ->
+            ?log_error("Can't connect to RabbitMQ: ~p", [Reason]),
+            {stop, {cant_connect_rabbitmq, Reason}}
     end.
 
 
 handle_cast(Request, State) ->
     {stop, {bad_arg, Request}, State}.
-  
+
 handle_info(Info, State) ->
     {stop, {bad_arg, Info}, State}.
 
@@ -87,19 +87,37 @@ code_change(_OldSvn, State, _Extra) ->
 %% Internal
 %% ===================================================================
 
-
-%% get default AMQP params from config
--spec get_default_amqp_params() -> #amqp_params_network{}.
 get_default_amqp_params() ->
-    {ok, Host} = application:get_env(rmq_tool, amqp_host),
-    {ok, Port} = application:get_env(rmq_tool, amqp_port),
-    {ok, User} = application:get_env(rmq_tool, amqp_user),
-    {ok, Pass} = application:get_env(rmq_tool, amqp_pass),
-    
-    #amqp_params_network{ 
-        username = User,
-        password = Pass,
+    {ok, Host} = application:get_env(rmq_tool, host),
+    {ok, VHost} = application:get_env(rmq_tool, virtual_host),
+    {ok, Port} = application:get_env(rmq_tool, port),
+    {ok, User} = application:get_env(rmq_tool, username),
+    {ok, Pass} = application:get_env(rmq_tool, password),
+    {ok, HeartBeat0} = application:get_env(rmq_tool, heartbeat),
+    HeartBeat =
+    case HeartBeat0 of
+        true -> 1;
+        false -> 0
+    end,
+    {ok, ConnTimeout} = application:get_env(rmq_tool, connection_timeout),
+
+    ConnectArgs = [
+        {host, Host},
+        {virtual_host, VHost},
+        {port, Port},
+        {username, User},
+        {password, Pass},
+        {heartbeat, HeartBeat},
+        {connection_timeout, ConnTimeout}
+    ],
+    ?log_info("Try to connect: ~p~n", [ConnectArgs]),
+
+    #amqp_params_network{
+        username = list_to_binary(User),
+        password = list_to_binary(Pass),
         host = Host,
+        virtual_host = VHost,
         port = Port,
-        heartbeat = 1
+        heartbeat = HeartBeat,
+        connection_timeout = ConnTimeout
     }.

@@ -59,11 +59,11 @@ dump(QueueName, MaxMessages, NoAck, true) ->
 	Channel = rmq_connection:get_channel(),
 
 	MessagesCount = get_max_items(QueueName, MaxMessages),
-	
+
 	DumpProgress = #dump_progress_state{
-		seconds = rmq_basic_funs:get_seconds(), 
-		left = MessagesCount, 
-		count = MessagesCount, 
+		seconds = rmq_basic_funs:get_seconds(),
+		left = MessagesCount,
+		count = MessagesCount,
 		messages_count = 0},
 
 	FileName = compose_log_file_name(QueueName),
@@ -82,11 +82,11 @@ show_summary(MessagesCount)	->
 	?log_info("Summary: ~p messages have been dumped", [MessagesCount]).
 
 
-dump_queue_contents(_, _, _, #dump_progress_state{count = 0, messages_count = 0}, LogFileName) -> 
+dump_queue_contents(_, _, _, #dump_progress_state{count = 0, messages_count = 0}, LogFileName) ->
 	push_to_dump_empty_queue(LogFileName, 0),
 	ok;
 
-dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt}, _) -> 
+dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt}, _) ->
 	show_summary(Cnt),
 	ok;
 

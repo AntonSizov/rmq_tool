@@ -3,6 +3,9 @@
 -include_lib("amqp_client/include/amqp_client.hrl").
 -include("logging.hrl").
 
+-export([
+    main/1
+]).
 
 -export([
 	% aliases from dump
@@ -21,10 +24,103 @@
 	help/0
 ]).
 
+
+-define(OptSpecList, [
+        {host,               $h, "host",            {string, "localhost"}, ""},
+        {port,               $p, "port",            {integer, 5672},       ""},
+        {virtual_host,       $H, "virtual_host",    {string, "/"},         ""},
+        {username,           $u, "username",        {string, "guest"},     ""},
+        {password,           $p, "password",        {string, "guest"},     ""},
+        {heartbeat,          $b, "heartbeat",       {boolean, false},      ""},
+        {connection_timeout, $t, "connect_timeout", {integer, 5000},       ""}
+    ]).
+
 %% ===================================================================
 %% APIs
 %% ===================================================================
 
+-spec main([list()]) -> ignore.
+main(Args) ->
+    {ok, {Props, CmdAndArgs}} = getopt:parse(?OptSpecList, Args),
+    main(Props, CmdAndArgs).
+
+main(Props, ["purge", QueueName]) ->
+    start_all(Props),
+	purge(list_to_binary(QueueName)),
+    halt(0);
+main(Props, ["dump", QueueName]) ->
+    start_all(Props),
+	dump(list_to_binary(QueueName)),
+    halt(0);
+main(Props, ["dump", QueueName, N]) ->
+    start_all(Props),
+    dump(list_to_binary(QueueName), list_to_integer(N)),
+    halt(0);
+main(_Props, ["list_dumps"]) ->
+    list_dumps(),
+    halt(0);
+main(Props, ["restore", QueueName0, DumpIdOrFileName]) ->
+    start_all(Props),
+    QueueName = list_to_binary(QueueName0),
+    try list_to_integer(DumpIdOrFileName) of
+        DumpId ->
+	        inject(QueueName, DumpId)
+    catch _:_ ->
+	    inject(QueueName, list_to_binary(DumpIdOrFileName))
+    end,
+    halt(0);
+main(Props, ["restore", QueueName, DumpFileName, Offset]) ->
+    start_all(Props),
+	inject(list_to_binary(QueueName), list_to_binary(DumpFileName), list_to_integer(Offset)),
+    halt(0);
+main(Props, ["restore", QueueName, DumpFileName, Offset, Count]) ->
+    start_all(Props),
+	inject(list_to_binary(QueueName), list_to_binary(DumpFileName), list_to_integer(Offset), list_to_integer(Count)),
+    halt(0);
+main(Props, ["delete_queue", QueueName]) ->
+    start_all(Props),
+	delete_queue(list_to_binary(QueueName)),
+    halt(0);
+main(_Props, _) ->
+    MainOptionsDescr = [
+        {"command", "purge, dump, list_dumps, restore, delete_queue"},
+        {"command_args", ""}
+    ],
+    getopt:usage(?OptSpecList, "rmq_tool", "<command> [<command_args>]", MainOptionsDescr),
+
+    AvailableCmdsHelpMsg =
+    "~n"
+    "\tAvailable commands and its args description:~n~n"
+
+    "\tPurge queue:~n"
+    "\trmq_tool purge <queue_name>~n~n"
+
+    "\tDupm all messages in queue: ~n"
+    "\trmq_tool dump <queue_name>~n~n"
+
+    "\tDump N messages in queue: ~n"
+    "\trmq_tool dump <queue_name> <N>~n~n"
+
+    "\tList available dumps: ~n"
+    "\trmq_tool list_dumps~n~n"
+
+    "\tRestore messages from queue dump by dump id: ~n"
+    "\trmq_tool restore <queue_name> <dump_id>~n~n"
+
+    "\tRestore messages from queue dump by dump file name: ~n"
+    "\trmq_tool restore <queue_name> <dump_file_name>~n~n"
+
+    "\tAdvanced messages restore: ~n"
+    "\trmq_tool restore <queue_name> <dump_file_name> <offset>~n"
+    "\trmq_tool restore <queue_name> <dump_file_name> <offset> <count>~n~n"
+
+    "\tDelete queue: ~n"
+    "\trmq_tool delete_queue <queue_name>~n",
+
+    io:format(standard_error, AvailableCmdsHelpMsg, []).
+
+
+-spec delete_queue(binary()) -> ok.
 delete_queue(QueueName) when is_binary(QueueName) ->
 	Channel = rmq_connection:get_channel(),
 	try
@@ -137,3 +233,19 @@ help() ->
 	"rmq_tool:delete_queue(<<\"queue_name\">>).~n"
 	).
 
+
+start_all(Props) ->
+    PropNameList = [
+        host,
+        port,
+        virtual_host,
+        username,
+        password,
+        heartbeat,
+        connection_timeout
+    ],
+
+    [ok = application:set_env(?MODULE, K, proplists:get_value(K, Props)) ||
+        K <- PropNameList],
+    ok = application:start(amqp_client),
+    ok = application:start(?MODULE).

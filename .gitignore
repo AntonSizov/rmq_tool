@@ -1,3 +1,4 @@
 deps/
 ebin/
 rel/rmq_tool
+rmq_tool
