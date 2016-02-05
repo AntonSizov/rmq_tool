@@ -3,25 +3,10 @@
 -include_lib("amqp_client/include/amqp_client.hrl").
 -include("logging.hrl").
 
+-ignore_xref([{main, 1}]).
 -export([
     main/1
 ]).
-
--export([
-    % aliases from dump
-    dump/3,
-    dump/2,
-    dump/1,
-
-    % aliases from inject
-    inject/2,
-    inject/3,
-    inject/4,
-
-    purge/1,
-    delete_queue/1
-]).
-
 
 -define(OptSpecList, [
         {host,               $h, "host",            {string, "localhost"}, ""},
@@ -151,12 +136,6 @@ dump(QueueName) ->
 -spec dump(QueueName :: binary(), MaxMessages :: integer()) -> ok.
 dump(QueueName, Max) ->
     rmq_dump:dump(QueueName, Max).
-
-
-%% @doc dump queue, limiting amount of dumped messages
--spec dump(QueueName :: binary(), MaxMessages :: integer(), NoAck :: atom()) -> ok.
-dump(QueueName, Max, NoAck) ->
-    rmq_dump:dump(QueueName, Max, NoAck).
 
 
 %% @doc injecting queue with all data taken from a file

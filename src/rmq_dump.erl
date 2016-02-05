@@ -5,7 +5,6 @@
 -include("consts.hrl").
 
 -export([
-    dump/3,
     dump/2,
     dump/1
 ]).
@@ -26,19 +25,13 @@
 %% @doc dump queue
 -spec dump(QueueName :: binary()) -> ok.
 dump(QueueName) ->
-    dump(QueueName, _MaxMsgs = 0, _NoAck = true).
+    dump(QueueName, _MaxMsgs = 0).
 
 
 %% @doc dump queue, limiting amount of dumped messages
 -spec dump(QueueName :: binary(), MaxMessages :: integer()) -> ok.
 dump(QueueName, MaxMessages) ->
-    dump(QueueName, MaxMessages, _NoAck = true).
-
-
-%% @doc dump queue, limiting amount of dumped messages
--spec dump(QueueName :: binary(), MaxMessages :: integer(), NoAck :: atom()) -> ok.
-dump(QueueName, MaxMessages, NoAck) ->
-    dump(QueueName, MaxMessages, NoAck, rmq_basic_funs:queue_is_exists(QueueName)).
+    dump(QueueName, MaxMessages, _NoAck = true, rmq_basic_funs:queue_is_exists(QueueName)).
 
 %% ===================================================================
 %% Internals
@@ -59,7 +52,6 @@ dump(QueueName, MaxMessages, NoAck, _IsExist = true) ->
         messages_count = 0
     },
     FileName = compose_log_file_name(QueueName),
-    ?log_info("Dumping queue to ~s", [FileName]),
     dump_queue_contents(QueueName, Channel, NoAck, DumpProgress, FileName).
 
 
@@ -78,6 +70,7 @@ dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt
     ?log_info("Summary: ~p messages have been dumped (max msg count reached)", [Cnt]);
 
 dump_queue_contents(QueueName, Channel, NoAck, State, LogFileName) when is_list(LogFileName) ->
+    ?log_info("Dumping queue to ~s", [LogFileName]),
     filelib:ensure_dir(?DEFAULT_DUMP_lOGS_FOLDER),
     case file:open(LogFileName, [write, exclusive, raw]) of
         {ok, IoDevice} ->

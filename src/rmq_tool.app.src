@@ -1,6 +1,6 @@
 {application, rmq_tool, [
     {description, "Able to dump, restore purge and remove queues"},
-    {vsn, "1.1.0"},
+    {vsn, git},
     {registered, []},
     {applications, [
         kernel,

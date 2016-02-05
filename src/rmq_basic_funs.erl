@@ -2,7 +2,6 @@
 
 -export([
     queue_length/1,
-    queue_declare/1,
     queue_is_exists/1,
     publish_message/3
 ]).
@@ -46,15 +45,6 @@ queue_is_exists(QueueName) ->
         _Ex:Reason -> ?log_error("Error: ~p.", [Reason]),
         false
     end.
-
-
-%% @doc Creates queue
-- spec queue_declare(QueueName :: binary()) -> #'queue.declare_ok'{}.
-queue_declare(QueueName) ->
-    Channel = rmq_connection:get_channel(),
-
-    Declare = #'queue.declare'{queue = QueueName},
-    #'queue.declare_ok'{} = amqp_channel:call(Channel, Declare).
 
 
 %% @doc Publish message to the give queue
