@@ -73,26 +73,37 @@ get_max_items(QueueName, Max) ->
 dump_queue_contents(_, _, _, #dump_progress_state{count = 0, messages_count = 0}, _LogFileName) ->
     ?log_info(?QUEUE_IS_EMPTY_MSG, []);
 
-dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt}, _LogFileName) ->
+dump_queue_contents(_, _, _, #dump_progress_state{left = 0, messages_count = Cnt}, IoDevice) ->
+    ok = file:close(IoDevice),
     ?log_info("Summary: ~p messages have been dumped (max msg count reached)", [Cnt]);
 
-dump_queue_contents(QueueName, Channel, NoAck, State, LogFileName) ->
+dump_queue_contents(QueueName, Channel, NoAck, State, LogFileName) when is_list(LogFileName) ->
+    case file:open(LogFileName, [write, exclusive, raw]) of
+        {ok, IoDevice} ->
+            ?log_debug("File ~s opened for write", [LogFileName]),
+            dump_queue_contents(QueueName, Channel, NoAck, State, IoDevice);
+        {error, eexist} ->
+            ?log_error("File ~s already exist", [LogFileName]),
+            error(dump_file_already_exist);
+        {error, Error} ->
+            ?log_error("Open dump file ~s error (~p)", [LogFileName, Error]),
+            error(dump_file_already_exist)
+    end;
+
+dump_queue_contents(QueueName, Channel, NoAck, State, IoDevice) ->
     NewState = show_progress(rmq_basic_funs:get_seconds(), State),
 
     BasicGet = #'basic.get'{queue = QueueName, no_ack = NoAck},
 
     case amqp_channel:call(Channel, BasicGet) of
         {#'basic.get_ok'{}, Content} ->
-            push_to_dump(LogFileName, Content),
-            dump_queue_contents(QueueName, Channel, NoAck, NewState, LogFileName);
+            ok = file:write(IoDevice, io_lib:format("~p.~n", [Content])),
+            dump_queue_contents(QueueName, Channel, NoAck, NewState, IoDevice);
         #'basic.get_empty'{} ->
+            ok = file:close(IoDevice),
             ?log_info("Summary: ~p messages have been dumped (basic.get_empty)",
                 [State#dump_progress_state.messages_count])
     end.
-
-
-push_to_dump(LogFileName, Content) ->
-    file:write_file(LogFileName, io_lib:format("~p.~n", [Content]), [append]).
 
 
 show_progress(NowSeconds, DumpProgressState = #dump_progress_state{seconds = NowSeconds}) ->
