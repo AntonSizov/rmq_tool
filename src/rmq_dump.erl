@@ -59,7 +59,7 @@ get_max_items(QueueName, 0) ->
     rmq_basic_funs:queue_length(QueueName);
 get_max_items(QueueName, Max) ->
     AvailableMsgsNumber = rmq_basic_funs:queue_length(QueueName),
-    min(AvailableMsgsNumber, Max).
+    erlang:min(AvailableMsgsNumber, Max).
 
 
 dump_queue_contents(_, _, _, #dump_progress_state{count = 0, messages_count = 0}, _LogFileName) ->
@@ -78,10 +78,10 @@ dump_queue_contents(QueueName, Channel, NoAck, State, LogFileName) when is_list(
             dump_queue_contents(QueueName, Channel, NoAck, State, IoDevice);
         {error, eexist} ->
             ?log_error("File ~s already exist", [LogFileName]),
-            error(dump_file_already_exist);
+            erlang:error(dump_file_already_exist);
         {error, Error} ->
             ?log_error("Open dump file ~s error (~p)", [LogFileName, Error]),
-            error(dump_file_already_exist)
+            erlang:error(dump_file_already_exist)
     end;
 
 dump_queue_contents(QueueName, Channel, NoAck, State, IoDevice) ->
