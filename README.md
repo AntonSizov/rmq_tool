@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/AntonSizov/rmq_tool.png?branch=master)](https://travis-ci.org/AntonSizov/rmq_tool)
+=======
 A command line tool that able to purge, delete, dump and restore RabbitMQ queues
 using AMQP protocol.
 

@@ -1,0 +1,18 @@
+language: erlang
+script: make
+otp_release:
+- R13B04
+notifications:
+  email:
+    recipients:
+    - a.sysoff@gmail.com
+    on_success: change
+    on_failure: change
+deploy:
+  provider: releases
+  api_key:
+    secure: SfviVSeFMEnd7Cu8Q9QjVpw9hwX5cAlCvNLi/x6SYWy9ChVJUtjwUcI+ivUbn4PhIYvBCmqqmIO+81ipHTwVjkl8rBgy8sFNnYQuL4vXq6MbyZop49sLapus4DiEXSyJzJDnkMc3IVpYuVPTSITfw7lOhymincni3xxJI6H0+uU=
+  file: rmq_tool
+  skip_cleanup: true
+  on:
+    repo: AntonSizov/rmq_tool
