@@ -1,4 +1,0 @@
-{application,rmq_tool}.
-{packages,[]}.
-{modules,[rmq_basic_funs,rmq_connection,rmq_dump,rmq_inject,rmq_tool,
-          rmq_tool_app,rmq_tool_sup]}.
