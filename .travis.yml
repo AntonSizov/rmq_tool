@@ -15,4 +15,4 @@ deploy:
   file: rmq_tool
   skip_cleanup: true
   on:
-    repo: AntonSizov/rmq_tool
+    tags: true
